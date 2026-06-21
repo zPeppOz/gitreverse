@@ -18,6 +18,8 @@ import { createSign } from "node:crypto";
 import { getGitHubApiBaseUrl } from "@/lib/github-config";
 
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
+// Fallback lifetime when the response omits a parseable expires_at (~55 min).
+const FALLBACK_TOKEN_LIFETIME_MS = 55 * 60_000;
 
 interface CachedToken {
   token: string;
@@ -146,7 +148,7 @@ async function requestInstallationToken(): Promise<string> {
     token: data.token,
     expiresAtMs: Number.isFinite(expiresAtMs)
       ? expiresAtMs
-      : Date.now() + 55 * 60_000,
+      : Date.now() + FALLBACK_TOKEN_LIFETIME_MS,
   };
   return data.token;
 }
