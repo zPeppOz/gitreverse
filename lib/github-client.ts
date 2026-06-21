@@ -1,15 +1,30 @@
 /**
  * GitHub API Client — native fetch.
+ *
+ * Works against github.com and GitHub Enterprise Server (configurable host).
+ * Auth uses a GitHub App installation token when configured, otherwise the
+ * static GITHUB_TOKEN.
  */
 
-const GITHUB_API = "https://api.github.com";
+import { getGitHubApiBaseUrl } from "@/lib/github-config";
+import {
+  getInstallationToken,
+  hasGitHubAppConfig,
+} from "@/lib/github-app-auth";
 
-function githubHeaders(): HeadersInit {
+async function resolveGitHubToken(): Promise<string | null> {
+  if (hasGitHubAppConfig()) {
+    return getInstallationToken();
+  }
+  return process.env.GITHUB_TOKEN?.trim() || null;
+}
+
+async function githubHeaders(): Promise<HeadersInit> {
   const headers: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "gitreverse/1.0.0",
   };
-  const token = process.env.GITHUB_TOKEN;
+  const token = await resolveGitHubToken();
   if (token) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
@@ -56,8 +71,8 @@ interface GitHubRepoResponse {
 }
 
 export async function getRepoMeta(owner: string, repo: string): Promise<RepoMeta> {
-  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
-    headers: githubHeaders(),
+  const res = await fetch(`${getGitHubApiBaseUrl()}/repos/${owner}/${repo}`, {
+    headers: await githubHeaders(),
   });
 
   if (res.status === 401) {
@@ -90,8 +105,8 @@ export async function getFileTree(
 ): Promise<{ tree: Array<{ path: string; type: string }>; truncated: boolean }> {
   const doFetch = async (b: string, isRetry: boolean) => {
     const branchRes = await fetch(
-      `${GITHUB_API}/repos/${owner}/${repo}/branches/${b}`,
-      { headers: githubHeaders() }
+      `${getGitHubApiBaseUrl()}/repos/${owner}/${repo}/branches/${b}`,
+      { headers: await githubHeaders() }
     );
 
     if (branchRes.status === 401) {
@@ -117,8 +132,8 @@ export async function getFileTree(
     const treeSha = branchData.commit.commit.tree.sha;
 
     const treeRes = await fetch(
-      `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${treeSha}?recursive=1`,
-      { headers: githubHeaders() }
+      `${getGitHubApiBaseUrl()}/repos/${owner}/${repo}/git/trees/${treeSha}?recursive=1`,
+      { headers: await githubHeaders() }
     );
 
     if (treeRes.status === 401) {
@@ -149,8 +164,8 @@ export async function readFile(
 ): Promise<string> {
   const doFetch = async (b: string, isRetry: boolean) => {
     const res = await fetch(
-      `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(b)}`,
-      { headers: githubHeaders() }
+      `${getGitHubApiBaseUrl()}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(b)}`,
+      { headers: await githubHeaders() }
     );
 
     if (res.status === 401) {
@@ -184,8 +199,8 @@ export async function getReadme(
 ): Promise<string> {
   const doFetch = async (b: string, isRetry: boolean) => {
     const res = await fetch(
-      `${GITHUB_API}/repos/${owner}/${repo}/readme?ref=${encodeURIComponent(b)}`,
-      { headers: githubHeaders() }
+      `${getGitHubApiBaseUrl()}/repos/${owner}/${repo}/readme?ref=${encodeURIComponent(b)}`,
+      { headers: await githubHeaders() }
     );
 
     if (res.status === 401) {

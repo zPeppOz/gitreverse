@@ -1,3 +1,5 @@
+import { getGitHubHost } from "@/lib/github-config";
+
 const SLUG_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 
 export function parseGitHubRepoInput(
@@ -8,13 +10,16 @@ export function parseGitHubRepoInput(
 
   const withoutGit = (name: string) => name.replace(/\.git$/i, "");
 
+  const host = getGitHubHost().toLowerCase();
+  const acceptedHosts = new Set(["github.com", host]);
+
   try {
     const url =
-      s.includes("://") || s.startsWith("github.com")
+      s.includes("://") || s.startsWith("github.com") || s.startsWith(host)
         ? new URL(s.startsWith("http") ? s : `https://${s}`)
         : null;
 
-    if (url && url.hostname.replace(/^www\./, "") === "github.com") {
+    if (url && acceptedHosts.has(url.hostname.replace(/^www\./, "").toLowerCase())) {
       const parts = url.pathname.split("/").filter(Boolean);
       if (parts.length < 2) return null;
       return { owner: parts[0], repo: withoutGit(parts[1]) };

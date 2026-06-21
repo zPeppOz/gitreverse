@@ -50,6 +50,21 @@ If your Azure resource does not yet have an embedding deployment, you can tempor
 - **`SUPABASE_URL`** + **`SUPABASE_PUBLISHABLE_KEY`** — optional; enables server-side caching of quick prompts in `prompt_cache` and exposes the `/library` page.
 - **`VIEWS_IP_SALT`** — **required in production**. Generate one with `openssl rand -hex 32`. The app will refuse to start in production without a non-default value.
 
+### GitHub Enterprise Server (optional)
+
+By default the app talks to **github.com** (`https://api.github.com`). To use a self-hosted **GitHub Enterprise Server (GHE)** instance, set the host and the REST API base is derived automatically (`https://<host>/api/v3`):
+
+- **`NEXT_PUBLIC_GITHUB_HOST`** — your GHE hostname, e.g. `ghe.example.com`. Using the `NEXT_PUBLIC_` prefix also lets pasted GHE repo URLs be recognized in the browser. `GITHUB_HOST` works as a server-only alternative.
+- **`GITHUB_API_BASE_URL`** — optional explicit override if your API base differs from the derived `https://<host>/api/v3`.
+
+#### Auth via GitHub App
+
+Instead of a personal `GITHUB_TOKEN`, you can authenticate as a **GitHub App** (recommended for Enterprise). When all three values are set, the app signs a short-lived JWT with the App private key, exchanges it for an installation access token, caches it until it nears expiry, and uses it for every GitHub API call (works on both github.com and GHE):
+
+- **`GITHUB_APP_ID`** — the App's numeric ID (or set `GITHUB_APP_CLIENT_ID`).
+- **`GITHUB_APP_PRIVATE_KEY`** — the App's PEM private key. Literal `\n` escapes in a single-line value are supported.
+- **`GITHUB_APP_INSTALLATION_ID`** — the installation to act as.
+
 ### Custom reverse (optional)
 
 For **deep / focus** prompts, point the app at a backend service:
